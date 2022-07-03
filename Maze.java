@@ -1,313 +1,401 @@
-import java.util.*;
-import java.lang.Math;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.PriorityQueue;
 
-public class Maze {
-    //***************************************************//
-    //          NOTES – Maze Object            
-    // Maze will be a representation of a n-dimensional maze
-    // Maze will hold an array of dimension, size, array of cells, and map of maze nodes
-    //
-    // Dimension:
-    // – Holds the defined dimension of the maze
-    //
-    // Size:
-    // - Holds the defined size of one row in the square n-dimensional maze
-    //
-    // Cells:
-    // – One cell for each space in the maze
-    // – Each cell contains a boolean array representing walls
-    // – Walls defined as being on or off
-    // – Cells.length    = (maze.size)^(maze.dimension)
-    // - Cells[0].length = 2*(maze.dimension)
-    //
-    // MazeNodes:
-    // - Integer position of cell --> MazeNode for disjoint set functions
-    // - After createMaze(), all MazeNodes should have same parent
-    //***************************************************//
+/***
+ * Graphical representation of a maze–– where walls denote edges, and nodes denote vertices.
+ * 
+ * @author Kameron Melvin {kmelvin22@amherst.edu}
+ * @since   1.0
+ * @version 1.0
+ */
+class Maze {
+    
+    private int numNodes;
+    private int numNodeWalls;
 
-    private boolean[][]  cells;
-    private int          dimension;
-    private int          size;
+    private boolean[] walls;
 
-    private Map<Integer, MazeNode> mazeNodes = new HashMap<>();
+    private int dimension;
+    private int size;
 
-    public Maze(int dimension, int size){
-        System.out.println("INITIALIZING: Maze being initialized...");
-        this.dimension  = dimension;
-        this.size       = size;
-        this.cells      = new boolean[(int) Math.pow(size, dimension)][2*dimension];
-        System.out.println("INITIALIZING: Successfully initialized");
-        createMaze();
+    private HashMap<Integer, Node> nodes;
+
+    /***
+     * Creates maze object.
+     * <p>
+     * Sets {@code dimenison}, {@code size}, and intializes {@code walls[]} to be all true.
+     * <p>
+     * Determines the {@code numNodes}, {@code numNodeWalls}.
+     * <p>
+     * Generates mapping from {@code node.pos} to {@code node} and creates nodes for each position.
+     * 
+     * @param inputDimension    – dimension of maze
+     * @param inputSize         – size of maze
+     * 
+     * @see Node
+     */
+    public Maze(int inputDimension, int inputSize){
+
+        numNodes        = (int) Math.pow(inputSize, inputDimension);
+        numNodeWalls    = inputDimension * 2;
+
+        walls = new boolean[numNodes*numNodeWalls];
+        Arrays.fill(walls, true);
+
+        this.dimension  = inputDimension;
+        this.size       = inputSize;
+
+        nodes = new HashMap<Integer, Node>();
+
+        for (int i = 0; i < numNodes; i++){
+            nodes.put(i*numNodeWalls, new Node(i*numNodeWalls));
+        }
     }
 
-    //***************************************************//
-    //          NOTES – Class Methods           
-    // CREATE MAZE: for each cell: 
-    // - creates MazeNode representing cell and its set data
-    // - unions to some other in-bounds, disjoint cell
-    // - breaks walls between union cells  
-    //
-    // CHECK MAZE: for each MazeNode:
-    // - checks if all parents are the same
-    //
-    // SOLVE MAZE: 
-    // - finds path to target node and returns it to output file
-    // - uses dfs and backtracking
-    //
-    // PRINT MAZE:
-    // - prints the maze
-    // - reasonably, only should be printing up to 2 dimensions
-    //***************************************************//
+    /***
+     * Generates a maze using constructor variables using an implementation of "Kruskal's Algorithm".
+     * <p>
+     * Randomly selects a {@code nodeA}, then randomly selects a direction to find {@code nodeB}, then unions if {@code nodeA} and {@code nodeB} can be unioned.
+     * Repeat the process until all nodes have been selected.
+     * <p>
+     * Ensures that all nodes will be unioned with no cycles, as self unions are not permitted.
+     * <p>
+     * Utilizes path compression and union by rank to minimize runtime.
+     * <p><ul>
+     * <li> Union by rank :: highest ranked {@code parent} of becomes {@code parent} of disjoint set.
+     * <li> Path compression :: will set {@code this.parent} to {@code parent} of disjoint set.
+     * </ul><p>
+     * 
+     * @return maze representation as {@code walls}
+     */
+    public boolean[] create(){
 
-    public void createMaze(){
-        System.out.println("CREATING: Maze being created...");
-        //Setup – set all wall values to true
-        Stack<Integer> unused   = new Stack<>();
+        List<Integer> nodeIndexList = new ArrayList<Integer>(nodes.keySet());
+        Collections.shuffle(nodeIndexList);
 
-        for(int i = 0; i < cells.length; i++){
-            for (int j = 0; j < cells[0].length; j++){
-                cells[i][j] = true;
-            }
+        Iterator<Integer> nodeIndexIterator = nodeIndexList.iterator();
 
-            unused.add(i);
-        }
+        while(nodeIndexIterator.hasNext()){
 
-        Collections.shuffle(unused);
-        //Stack<Integer> clone = (Stack<Integer>) unused.clone();
+            Node currNode = nodes.get(nodeIndexIterator.next());
 
-        //Connect Sets – randomly connect cells and break walls
+            List<Integer> nextPositions = findNextPositions(currNode.getPos());
+            Collections.shuffle(nextPositions);
 
-        //Kruskal's until all nodes have been used once
-        while(!unused.isEmpty()){
-            //Set current node and position and add to mazeNodes
-            int currPos         = unused.pop();
-            MazeNode currNode   = (mazeNodes.containsKey(currPos)) ?
-                                    mazeNodes.get(currPos) : new MazeNode(currPos);
+            for (Integer nextNodePos : nextPositions) {
 
-            if (!mazeNodes.containsKey(currPos)) mazeNodes.put(currPos, currNode);
+                Node nextNode = nodes.get(nextNodePos);
 
-            //Create list of valid directions to move in (+x, -x, +y, ...)
-            //Find the next node and union it to the current node
-            for (Integer dir : validDirections(currPos)){
-                //Use the direction to find the next node and position
-                int nextPos         = currPos+dir;
-                MazeNode nextNode   = (mazeNodes.containsKey(nextPos)) ?
-                                        mazeNodes.get(nextPos) : new MazeNode(nextPos);
-
-                if (!mazeNodes.containsKey(nextPos)) mazeNodes.put(nextPos, nextNode);
-
-                //If the nodes can be unioned, union and break walls between them >> break
-                if(currNode.union(nextNode)){
-                    breakWalls(currPos, nextPos, dir);
-                    //break;
-                }
-            }
-        }
-
-        //Can repeat the unioning process by uncommenting lines 77 and 103
-        //Repeating will result in different, more connected maze
-        /*
-        //First go around creates disjointed trees, second go around connects all trees together
-        while(!clone.isEmpty()){
-            //Set current node and position and add to mazeNodes
-            int currPos         = clone.pop();
-            MazeNode currNode   = (mazeNodes.containsKey(currPos)) ?
-                                    mazeNodes.get(currPos) : new MazeNode(currPos);
-
-            if (!mazeNodes.containsKey(currPos)) mazeNodes.put(currPos, currNode);
-
-            //Create list of valid directions to move in (+x, -x, +y, ...)
-            //Find the next node and union it to the current node
-            for (Integer dir : validDirections(currPos)){
-                //Use the direction to find the next node and position
-                int nextPos         = currPos+dir;
-                MazeNode nextNode   = (mazeNodes.containsKey(nextPos)) ?
-                                        mazeNodes.get(nextPos) : new MazeNode(nextPos);
-
-                if (!mazeNodes.containsKey(nextPos)) mazeNodes.put(nextPos, nextNode);
-
-                //If the nodes can be unioned, union and break walls between them >> break
-                if(currNode.union(nextNode)){
-                    breakWalls(currPos, nextPos, dir);
+                if (currNode.union(currNode, nextNode)){
+                    openWall(currNode.getPos(), nextNode.getPos());
                     break;
                 }
             }
         }
-        */
-        System.out.println("CREATING: Successfully created");
+
+        // Nodes are all connected, but do not point towards same parent
+        for (Node node : nodes.values())
+            node.findSet();
+
+        return walls;
     }
 
-    public boolean checkMaze(){
-        System.out.println("VALIDITY: Maze being validated...");
-        //Every parent of each MazeNode should be the same
-        MazeNode trueParent = this.mazeNodes.get(0).findSet();
+    /***
+     * Uses searching algorithm to find path from {@code startPos} to {@code goalPos}, 
+     * and return list of positions as its path.
+     * <p>
+     * Uses the A* searching algorithm using an eucledian distance heuristic,
+     * which is guaranteed to find the minimal path cost.
+     * <p>
+     * Need to find cleaner way of organizing path costs, rather than having a dedicated comparator
+     * and tuple object to accomplish sorting.
+     * 
+     * @param startPos  - first position
+     * @param goalPos   – second position
+     * 
+     * @return mininum cost path from {@code startPos} to {@code goalPos}
+     */
+    public int[] solve(int startPos, int goalPos){
 
-        //Go through and compare each MazeNode parent to trueParent
-        for (int i = 0; i < this.cells.length; i++){
-            //If curr parent is not equal to trueParent, then maze is not valid
-            if (!this.mazeNodes.get(i).findSet().isEquals(trueParent)){
-                System.out.println("VALIDITY: Maze is INVALID");
-                return false;
-            }
-        }
-        
-        //After visiting all nodes and checking each parent, every node is reachable >> valid
-        System.out.println("VALIDITY: Maze is VALID");
-        return true;
-    }
+        HashMap<Integer, Integer> pathPrev  = new HashMap<Integer, Integer>();
+        HashMap<Integer, Integer> pathCost  = new HashMap<Integer, Integer>();
+        PriorityQueue<AStarTuple> pathQueue = new PriorityQueue<AStarTuple>(10, new AStarPathComparator());
 
-    public void solveMaze(int start){
-        solveMaze(start, this.cells.length-1);
-    }
+        pathCost.put(startPos, 0);
+        pathPrev.put(startPos, null);
+        pathQueue.add(new AStarTuple(startPos, 0));
 
-    public void solveMaze(int start, int end){
-        //If start position is end position, path found
-        System.out.println("SOLVING: Currently finding path...");
-        if (start == end) {
-            System.out.println("SOLVING: Found path");
-            System.out.println("Path: " + start);
-        }
-        else{
-            //Create a empty map of position integers to used booleans to be filled in dfs
-            Map<Integer, Boolean> used = new HashMap<>();
+        while (!pathQueue.isEmpty()) {
 
-            //dfs from start position, ends on end position
-            System.out.println("SOLVING: Starting DFS on start position...");
-            Stack<Integer> pathlist = dfs(used, start, end);
+            int currentPos = pathQueue.poll().pos;
 
-            //Write out path
-            System.out.println("SOLVING: Found path");
-            System.out.print("Path: " + pathlist.pop());
-            while(!pathlist.isEmpty()){
-                System.out.print(" -> " + pathlist.pop());
-            }
-            System.out.println();
-        }
-    }
+            if (currentPos == goalPos)
+                return findPath(pathPrev, currentPos);
 
-    public Stack<Integer> dfs(Map<Integer, Boolean> visited, int curr, int end){
-        //Path to be returned
-        Stack<Integer> path = new Stack<>();
+            for (Integer nextPos : findOpenPositions(currentPos)){
 
-        //Marks current position as visited
-        visited.putIfAbsent(curr, true);
+                int nextPosCost = pathCost.get(currentPos) + 1;
 
-        //If the destination is reached, add to the path and return it
-        if (curr == end){
-            path.push(curr);
-            return path;
-        }
+                if (!pathCost.containsKey(nextPos) || nextPosCost < pathCost.get(currentPos)){
 
-        //DFS in each valid direction until destination is reached
-        for (Integer dir : validDirections(curr)){
-            //If wall exists and path is not already visited...
-            if (!this.cells[curr][CONVERT_wall(dir)] && !visited.containsKey(curr+dir)){
-                //Continue DFS on new position
-                path = dfs(visited, curr+dir, end);
-
-                //If path contains the destination, add the current position to path and return it
-                if (path != null){
-                    path.push(curr);
-                    return path;
+                    pathPrev.put(nextPos, currentPos);
+                    pathCost.put(nextPos, nextPosCost);
+                    pathQueue.add(new AStarTuple(nextPos, nextPosCost + findHeuristic(nextPos, goalPos)));
                 }
             }
         }
 
-        //If there are no more paths to go down on this depth, return null
         return null;
     }
 
-    public void printMaze(){
-        System.out.println("PRINTING: Maze being printed...");
-        //Only compatabile for dimensions less than 2
-        //Create map for arrow directions
-        Map<Integer, String> map = new HashMap<>();
-        map.put(0,"-▶");
-        map.put(1,"⬅");
-        map.put(2,"⬇");
-        map.put(3,"⬆");
+    /***
+     * Given {@code pos1} and {@code pos2}, sets appropriate booleans in {@code walls} to true.
+     * <p>
+     * Determines direction vector, and wall positions from given positions.
+     * 
+     * @param pos1  – first position
+     * @param pos2  – second position
+     */
+    public void openWall(int pos1, int pos2){
 
-        //Print each cell's walls with arrow key directions for readibility
-        for(int i = 0; i < this.cells.length; i++){
-            if (i % this.size == 0) System.out.println();
+        int dir         = pos2 - pos1;
 
-            System.out.print("[ ");
-            String s = "";
+        int direction   = (dir < 0) ? -1 : 1;
+        int magnitude   = (dir < 0) ? -dir : dir;
 
-            for(int j = 0; j < this.cells[0].length; j++){
-                if (this.cells[i][j] == false) s+= map.get(j) + " ";
-            }
+        int wallIndex   = ((direction < 0) ? 1 : 0) + 2 * ((int) (Math.log(magnitude/numNodeWalls) / Math.log(size)));
 
-            s += "] ";
-            System.out.printf("%-13s", s);
-        }
-        System.out.println();
+        int wallsPos1   = pos1 + wallIndex;
+        int wallsPos2   = (wallsPos1 % 2 == 0) ? pos2 + wallIndex+1: pos2 + wallIndex-1;
+
+        walls[wallsPos1] = false;
+        walls[wallsPos2]= false;
     }
 
-    //***************************************************//
-    //          NOTES – Additional Methods           
-    // BREAK WALLS: 
-    // - breaks the walls from one node in the direction of another node
-    //
-    // VALID DIRECTIONS: 
-    // – returns a list of in bound directions to move in from given position
-    // - randomizes list for random unioning in Kruskal's
-    //***************************************************//
+    /***
+     * Finds path from {@code currentPos} and head of {@code pathPrev} map.
+     * <p>
+     * The head of the map is determined if {@code pathPrev.get(pos) == null}.
+     * <p>
+     * Backtracks the previous path map until the head is found.
+     * 
+     * @param pathPrev      – position to previous position mapping
+     * @param currentPos    – first position
+     * 
+     * @return ordered position list indicating path
+     */
+    public int[] findPath(HashMap<Integer, Integer> pathPrev, int currentPos){
 
-    public void breakWalls(int fromPos, int toPos, int dir){   
-        //Find which type of wall (x, y, z, ...) to break
-        int wallPos = CONVERT_wall(dir);
+        List<Integer> path = new ArrayList<Integer>();
+
+        while (pathPrev.get(currentPos) != null){
+
+            path.add(currentPos);
+
+            currentPos = pathPrev.get(currentPos);
+        }
+
+        path.add(currentPos);
+
+        Collections.reverse(path);
+
+        return path.stream().mapToInt(Integer::intValue).toArray();
+    }
+
+    /***
+     * Given initial position, determine all valid next positions.
+     * <p>
+     * A position is invalid if:
+     * <p><ul>
+     * <li> its index does not map to a {@link Node}, 
+     * <li> its index is {@code > 0} 
+     * <li> its index is {@code < walls.length} 
+     * <li> one of its columns do not match
+     * </ul><p>
+     * Translate graph coordinates to positions. 
+     * 
+     * @param currentPos    – initial position
+     * 
+     * @return list of valid next positions
+     * 
+     * @see Maze#checkDirection(int, int, int)
+     */
+    public List<Integer> findNextPositions(int currentPos){
         
-        //If dir is negative, break the -wall for the outgoing direction
-        if (dir < 0){
-            this.cells[fromPos][wallPos]  = false;
-            this.cells[toPos][wallPos-1]  = false;
-        }
-        
-        //If dir is positive, break the +wall for the outgoing direction
-        else{
-            this.cells[fromPos][wallPos]  = false;
-            this.cells[toPos][wallPos+1]  = false;
-        }
+        List<Integer> nextPositions = new ArrayList<Integer>();
+
+        for(Integer direction : findDirections(currentPos))
+            nextPositions.add(currentPos + direction);
+
+        return nextPositions;
     }
 
-    public List<Integer> validDirections(int pos){
-        //Make list of valid directions to move in
-        List<Integer> ans = new ArrayList<>();
-        for(int i = 0; i < this.dimension; i++){
-            //dir1 = +pos coordinate direction; dir2 = –pos coordinate direction
-            int dir1    = (int) Math.pow(this.size, i);
-            int dir2    = -dir1;
+    /***
+     * Determines {@code nextPositions} and which have open walls.
+     * <p>
+     * See {@link Maze#findNextPositions(int)} to see how next positions are determined.
+     * 
+     * @param currentPos – first position
+     * 
+     * @return list of next positions with open walls
+     * 
+     * @see Maze#checkOpenWall(int, int)
+     */
+    public List<Integer> findOpenPositions(int currentPos){
 
-            //validate directions, add direction + position
-            //invalid if over/under cells size, and if wraps around (side bounds)
-            if ( ( (dir1+pos) % Math.pow(size,i+1) ) > (pos % Math.pow(size,i) ) ){
-                if (dir1+pos < this.cells.length){
-                    ans.add(dir1);
-                }
-            }
+        List<Integer> nextPositions = findNextPositions(currentPos);
 
-            if ( (pos % Math.pow(size,i+1)) > ( (dir2+pos) % Math.pow(size,i) ) ){
-                if (dir2+pos >= 0){
-                    ans.add(dir2);
-                }
-            }
+        nextPositions.removeIf(nextPos -> checkOpenWall(currentPos, nextPos));
+
+        return nextPositions;
+    }
+
+    /***
+     * Computes list of valid directions from a given position.
+     * <p>
+     * A {@code direction} is valid if it {@code currentPos + direction} maps to valid position.
+     * 
+     * @param currentPos    – first position
+     * 
+     * @return list of valid directions from input position.
+     */
+    public List<Integer> findDirections(int currentPos){
+
+        List<Integer> directions = new ArrayList<Integer>();
+
+        for(int i = 0; i < numNodeWalls; i++) {
+
+            int direction   = (i % 2 == 0) ? 1 : -1;
+            int magnitude   = numNodeWalls * (int) Math.pow(size, (i/2));
+
+            if (checkDirection(currentPos, (direction*magnitude), (i/2)))
+                directions.add(direction*magnitude);
         }
 
-        //Randomize the list
-        Collections.shuffle(ans);
-
-        return ans;
+        return directions;
     }
 
-    //***************************************************//
-    //          NOTES – Conversion Methods           
-    //***************************************************//
+    /***
+     * Calculates the heuristic of {@code pos} and {@code goal}.
+     * <p>
+     * Uses the eucledian distance formula as the heuristic function.
+     * 
+     * @param pos1  – first position
+     * @param pos2  – second position
+     * 
+     * @return heuristic value
+     */
+    public int findHeuristic(int pos1, int pos2){
 
-    public int CONVERT_wall(int dir){
-        //Changes direction into wall position (ex. 5 -> -y)
-        return (dir < 0)    ?   (int) (2*(Math.log(-dir)/Math.log(this.size)))+1 :
-                                (int) (2*(Math.log(dir)/Math.log(this.size)));
+        int heuristic = 0;
+
+        int[] coord1 = findCoordinates(pos1);
+        int[] coord2 = findCoordinates(pos2);
+
+        for(int i = 0; i < dimension; i++)
+            heuristic += (int) Math.pow(coord1[i] - coord2[i], 2);
+
+        return heuristic;
     }
 
+    /***
+     * Translates maze position to coordinate representation.
+     * 
+     * @param pos   – position
+     * 
+     * @return coordinate representation of {@code pos}
+     */
+    public int[] findCoordinates(int pos){
+
+        int[] coordinates = new int[dimension];
+
+        for (int i = 0; i < dimension; i++)
+            coordinates[i] = (pos/(numNodeWalls*((int) Math.pow(size, i)))) % size;
+
+        return coordinates;
+    }
+
+    /***
+     * Given a {@code pos1} and a {@code dir}, determine if the new position is valid.
+     * <p>
+     * The {@code dir} value is inputted as a directional magnitude.
+     * <p>
+     * The input {@code pow} is used to determine out of bounds movement.
+     * 
+     * @param pos1  – initial position
+     * @param dir   – direction to new position
+     * @param pow   – power for coordinate conversion
+     * 
+     * @return true if the next position is valid
+     */
+    public boolean checkDirection(int pos1, int dir, int pow){
+
+        if (!nodes.containsKey(pos1) || !nodes.containsKey(pos1+dir))
+            return false;
+
+        if (pos1+dir < 0)
+            return false;
+
+        if (pos1+dir > walls.length)
+            return false;
+
+        int col = numNodeWalls * (int) Math.pow(size, pow+1);
+
+        if (pos1 / col != (pos1 + dir) / col)
+            return false;
+
+        return true;
+    }
+
+    /***
+     * Determines if there exists an open wall/path between {@code pos1} and {@code pos2}.
+     * <p>
+     * If the wall from {@code pos1 -> pos2} is open, then the wall from {@code pos2 -> pos1}
+     * must be open as well.
+     * 
+     * @param pos1  - first position
+     * @param pos2  - second position
+     * 
+     * @return true if walls between two positions exist
+     */
+    public boolean checkOpenWall(int pos1, int pos2){
+
+        int dir         = pos2 - pos1;
+
+        int direction   = (dir < 0) ? -1 : 1;
+        int magnitude   = (dir < 0) ? -dir : dir;
+
+        int wallIndex   = ((direction < 0) ? 1 : 0) + 2 * ((int) (Math.log(magnitude/numNodeWalls) / Math.log(size)));
+
+        int wallsPos1   = pos1 + wallIndex;
+        int wallsPos2   = (wallsPos1 % 2 == 0) ? pos2 + wallIndex+1: pos2 + wallIndex-1;
+
+        return !(!walls[wallsPos1] && !walls[wallsPos2]);
+    }
+}
+
+class AStarPathComparator implements Comparator<AStarTuple>{
+
+    public int compare(AStarTuple a, AStarTuple b){
+
+        return a.cost - b.cost;
+    }
+}
+
+class AStarTuple {
+
+    int pos;
+    int cost;
+
+    public AStarTuple(int pos, int cost){
+        this.pos    = pos;
+        this.cost   = cost;
+    }
+    
 }
