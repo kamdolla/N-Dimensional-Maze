@@ -32,4 +32,4 @@ Used to describe a node in a graph. These nodes have disjoint data strucutre fun
 
 Constructor variables include the nodes position in the graph, the rank & parent of the disjoint set the node belongs to, and a 'if visited' variable. 
 
-Disjoint data structure functions, like *Node.findSet()* and *Node.union()* use "path compression" and "union by rank", respectively. These nodes also have {@code isVisited()}, a method used for searching algorithms, which find the shortest path from one node to another.
+Disjoint data structure functions, like *Node.findSet()* and *Node.union()* use "path compression" and "union by rank", respectively. These nodes also have *Node.isVisited()*, a method used for searching algorithms, which find the shortest path from one node to another.
