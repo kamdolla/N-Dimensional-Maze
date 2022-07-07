@@ -82,8 +82,8 @@ public class Node {
      * 
      * @return  {@code boolean} true if sets can be unioned.
      */
-    public boolean union(Node nodeA, Node nodeB){
-        Node parentA = nodeA.findSet();
+    public boolean union(Node nodeB){
+        Node parentA = this.findSet();
         Node parentB = nodeB.findSet();
 
         if (parentA.getPos() == parentB.getPos())

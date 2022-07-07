@@ -29,11 +29,9 @@ class Maze {
     /***
      * Creates maze object.
      * <p>
-     * Sets {@code dimenison}, {@code size}, and intializes {@code walls[]} to be all true.
+     * Sets {@code dimenison}, {@code size}.
      * <p>
      * Determines the {@code numNodes}, {@code numNodeWalls}.
-     * <p>
-     * Generates mapping from {@code node.pos} to {@code node} and creates nodes for each position.
      * 
      * @param inputDimension    – dimension of maze
      * @param inputSize         – size of maze
@@ -45,11 +43,20 @@ class Maze {
         numNodes        = (int) Math.pow(inputSize, inputDimension);
         numNodeWalls    = inputDimension * 2;
 
-        walls = new boolean[numNodes*numNodeWalls];
-        Arrays.fill(walls, true);
-
         this.dimension  = inputDimension;
         this.size       = inputSize;
+    }
+
+    /***
+     * Initialization method for maze object.
+     * <p>
+     * Intializes {@code walls[]} to be all true.
+     * <p>
+     * Generates mapping from {@code node.pos} to {@code node} and initializes nodes for each position.
+     */
+    public void initialize(){
+        walls = new boolean[numNodes*numNodeWalls];
+        Arrays.fill(walls, true);
 
         nodes = new HashMap<Integer, Node>();
 
@@ -68,13 +75,16 @@ class Maze {
      * <p>
      * Utilizes path compression and union by rank to minimize runtime.
      * <p><ul>
-     * <li> Union by rank :: highest ranked {@code parent} of becomes {@code parent} of disjoint set.
-     * <li> Path compression :: will set {@code this.parent} to {@code parent} of disjoint set.
+     * <li> Union by rank := highest ranked {@code parent} of becomes {@code parent} of disjoint set.
+     * <li> Path compression := will set {@code this.parent} to {@code parent} of disjoint set.
      * </ul><p>
+     * If maze generation is invalid, then maze will be generated again.
      * 
      * @return maze representation as {@code walls}
      */
     public boolean[] create(){
+
+        initialize();
 
         List<Integer> nodeIndexList = new ArrayList<Integer>(nodes.keySet());
         Collections.shuffle(nodeIndexList);
@@ -92,18 +102,65 @@ class Maze {
 
                 Node nextNode = nodes.get(nextNodePos);
 
-                if (currNode.union(currNode, nextNode)){
+                if (currNode.union(nextNode)){
                     openWall(currNode.getPos(), nextNode.getPos());
                     break;
                 }
             }
         }
 
-        // Nodes are all connected, but do not point towards same parent
-        for (Node node : nodes.values())
-            node.findSet();
+        if (!check())
+            return create();
 
         return walls;
+    }
+
+    /***
+     * Ensures that the maze generation is valid.
+     * <p>
+     * A maze is considered valid if:
+     *      there exists a spanning tree between all nodes, and
+     *      there exists no cycles between nodes.
+     * <p>
+     * Because of union by rank and path compression methods,
+     *      if all nodes point towards the same parent
+     *      then the maze must be valid.
+     * <p>
+     * Maze will be generated again if maze is invalid.
+     * 
+     * @return true if maze is valid
+     */
+    public boolean check(){
+
+        Node parent = null;
+
+        for(Node node : nodes.values()){
+            if (parent == null){
+                parent = node.findSet();
+                continue;
+            }
+
+            if (!parent.equals(node.findSet()))
+                return false;
+        }
+
+        return true;
+    }
+
+    /***
+     * Uses searching algorithm to find path from {@code 0} (the first position) to {@code walls.length-nodeNumWalls} (the last position), 
+     * and return list of positions as its path.
+     * <p>
+     * Uses the A* searching algorithm using an eucledian distance heuristic,
+     * which is guaranteed to find the minimal path cost.
+     * <p>
+     * Need to find cleaner way of organizing path costs, rather than having a dedicated comparator
+     * and tuple object to accomplish sorting.
+     * 
+     * @return mininum cost path from {@code startPos} to {@code goalPos}
+     */
+    public int[] solve(){
+        return solve(0, walls.length-numNodeWalls);
     }
 
     /***
