@@ -16,6 +16,23 @@ Required to generate mazes, the **Maze.java** and **Node.java** files will be ne
 
 The **Node.java** class is required for graph/maze functionalities and utilizes disjoint data structure methods, like *Node.findSet()* and *Node.union()*.
 
+### API Interface
+
+Use the **index.js** to use the API on the localhost (port is 8080). Remeber to initialize and import the following 'java' and 'express' modules.
+
+> $ npm init
+> $ npm install java
+> $ npm install express
+
+Use a Insomnia or Postman application to interact with the API, if you please. Requests should come from JSON format:
+
+```yaml
+{
+    "dimension" : 2,
+    "size" : 5
+}
+```
+
 ## Codebase
 
 As list above, the codebase consist of a maze class, node class, and sample run file.
@@ -32,8 +49,4 @@ Used to describe a node in a graph. These nodes have disjoint data strucutre fun
 
 Constructor variables include the nodes position in the graph, the rank & parent of the disjoint set the node belongs to, and a 'if visited' variable. 
 
-Disjoint data structure functions, like *Node.findSet()* and *Node.union()* use "path compression" and "union by rank", respectively. These nodes also have *Node.isVisited()*, a method used for searching algorithms, which find the shortest path from one node to another.
-
-## License
-
-[MIT](https://choosealicense.com/licenses/mit/)
+Disjoint data structure functions, like *Node.findSet()* and *Node.union()* use "path compression" and "union by rank", respectively. These nodes also have {@code isVisited()}, a method used for searching algorithms, which find the shortest path from one node to another.
