@@ -20,9 +20,9 @@ The **Node.java** class is required for graph/maze functionalities and utilizes 
 
 Use the **index.js** to use the API on the localhost (port is 8080). Remeber to initialize and import the following 'java' and 'express' modules.
 
-> $ npm init
-> $ npm install java
-> $ npm install express
+> npm init
+> npm install java
+> npm install express
 
 Use a Insomnia or Postman application to interact with the API, if you please. Requests should come from JSON format:
 
