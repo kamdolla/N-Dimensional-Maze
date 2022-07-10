@@ -47,6 +47,23 @@ class Maze {
         this.size       = inputSize;
     }
 
+    public Maze(Integer inputDimension, Integer inputSize){
+        
+        this.dimension  = inputDimension.intValue();
+        this.size       = inputSize.intValue();
+
+        numNodes        = (int) Math.pow(size, dimension);
+        numNodeWalls    = dimension * 2;
+    }
+
+    public int getNumNodes(){
+        return numNodes;
+    }
+
+    public int getNumNodeWalls(){
+        return numNodeWalls;
+    }
+
     /***
      * Initialization method for maze object.
      * <p>
@@ -113,6 +130,11 @@ class Maze {
             return create();
 
         return walls;
+    }
+
+    public String createString(){
+
+        return Arrays.toString(create());
     }
 
     /***
@@ -209,6 +231,11 @@ class Maze {
         }
 
         return null;
+    }
+
+    public String solveString(){
+
+        return Arrays.toString(solve());
     }
 
     /***
