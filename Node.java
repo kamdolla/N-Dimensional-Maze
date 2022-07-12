@@ -21,18 +21,14 @@
  */
 public class Node {
     
-    // Constructor variables for creating maze functions
     private int pos;
     private int rank;
     private Node parent;
 
-    // Constructor variables for solving maze functions
-    private boolean visited;
-
     /***
      * Node object for graph.
      * <p>
-     * Sets node position, disjoint set variables, and searching algorithm variables.
+     * Sets node position and disjoint set variables.
      * 
      * @param node_pos
      */
@@ -40,8 +36,6 @@ public class Node {
         this.pos    = node_pos;
         this.rank   = 0;
         this.parent = this;
-
-        this.visited = false;
     }
 
     /***
@@ -64,7 +58,7 @@ public class Node {
      * @return  {@code Node} disjoint set parent 
      */
     public Node findSet(Node inputNode){
-        if (inputNode.getParent() == inputNode)
+        if (inputNode.parent == inputNode)
             return inputNode;
 
         inputNode.parent = findSet(inputNode.parent);
@@ -86,41 +80,19 @@ public class Node {
         Node parentA = this.findSet();
         Node parentB = nodeB.findSet();
 
-        if (parentA.getPos() == parentB.getPos())
+        if (parentA.pos == parentB.pos)
             return false;
 
-        if (parentA.getRank() == parentB.getRank())
+        if (parentA.rank == parentB.rank)
             parentA.rank++;
 
-        if (parentA.getRank() > parentB.getRank())
+        if (parentA.rank > parentB.rank)
             parentB.parent = parentA;
 
         else
             parentA.parent = parentB;
         
         return true;
-    }
-
-    /***
-     * {@code this.visited} becomes true.
-     * <p>
-     * Used for solving maze purposes.
-     * 
-     * @return {@code boolean} true if visited
-     */
-    public void visit(){
-        
-        visited = true;
-    }
-
-    /***
-     * Used for solving maze purposes.
-     * 
-     * @return {@code boolean} true if visited
-     */
-    public boolean isVisited(){
-
-        return visited;
     }
 
     /***
@@ -137,19 +109,5 @@ public class Node {
      */
     public int getPos() {
         return pos;
-    }
-    
-    /**
-     * @return int return the rank
-     */
-    public int getRank() {
-        return rank;
-    }
-
-    /**
-     * @param parent the parent to get
-     */
-    public Node getParent() {
-        return parent;
     }
 }

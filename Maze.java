@@ -1,7 +1,6 @@
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -38,15 +37,6 @@ class Maze {
      * 
      * @see Node
      */
-    public Maze(int inputDimension, int inputSize){
-
-        numNodes        = (int) Math.pow(inputSize, inputDimension);
-        numNodeWalls    = inputDimension * 2;
-
-        this.dimension  = inputDimension;
-        this.size       = inputSize;
-    }
-
     public Maze(Integer inputDimension, Integer inputSize){
         
         this.dimension  = inputDimension.intValue();
@@ -97,9 +87,9 @@ class Maze {
      * </ul><p>
      * If maze generation is invalid, then maze will be generated again.
      * 
-     * @return maze representation as {@code walls}
+     * @return String maze representation as {@code walls}
      */
-    public boolean[] create(){
+    public String create(){
 
         initialize();
 
@@ -129,12 +119,7 @@ class Maze {
         if (!check())
             return create();
 
-        return walls;
-    }
-
-    public String createString(){
-
-        return Arrays.toString(create());
+        return Arrays.toString(walls);
     }
 
     /***
@@ -179,9 +164,9 @@ class Maze {
      * Need to find cleaner way of organizing path costs, rather than having a dedicated comparator
      * and tuple object to accomplish sorting.
      * 
-     * @return mininum cost path from {@code startPos} to {@code goalPos}
+     * @return String of mininum cost path from {@code startPos} to {@code goalPos}
      */
-    public int[] solve(){
+    public String solve(){
         return solve(0, walls.length-numNodeWalls);
     }
 
@@ -191,28 +176,25 @@ class Maze {
      * <p>
      * Uses the A* searching algorithm using an eucledian distance heuristic,
      * which is guaranteed to find the minimal path cost.
-     * <p>
-     * Need to find cleaner way of organizing path costs, rather than having a dedicated comparator
-     * and tuple object to accomplish sorting.
      * 
      * @param startPos  - first position
      * @param goalPos   – second position
      * 
-     * @return mininum cost path from {@code startPos} to {@code goalPos}
+     * @return String mininum cost path from {@code startPos} to {@code goalPos}
      */
-    public int[] solve(int startPos, int goalPos){
+    public String solve(int startPos, int goalPos){
 
         HashMap<Integer, Integer> pathPrev  = new HashMap<Integer, Integer>();
         HashMap<Integer, Integer> pathCost  = new HashMap<Integer, Integer>();
-        PriorityQueue<AStarTuple> pathQueue = new PriorityQueue<AStarTuple>(10, new AStarPathComparator());
+        PriorityQueue<Integer> pathQueue = new PriorityQueue<Integer>((pos1, pos2) -> ((pathCost.get(pos1) + findHeuristic(pos1, goalPos)) - (pathCost.get(pos2) + findHeuristic(pos2, goalPos))));
 
-        pathCost.put(startPos, 0);
         pathPrev.put(startPos, null);
-        pathQueue.add(new AStarTuple(startPos, 0));
+        pathCost.put(startPos, 0);
+        pathQueue.add(startPos);
 
         while (!pathQueue.isEmpty()) {
 
-            int currentPos = pathQueue.poll().pos;
+            int currentPos = pathQueue.poll();
 
             if (currentPos == goalPos)
                 return findPath(pathPrev, currentPos);
@@ -225,17 +207,12 @@ class Maze {
 
                     pathPrev.put(nextPos, currentPos);
                     pathCost.put(nextPos, nextPosCost);
-                    pathQueue.add(new AStarTuple(nextPos, nextPosCost + findHeuristic(nextPos, goalPos)));
+                    pathQueue.add(nextPos);
                 }
             }
         }
 
         return null;
-    }
-
-    public String solveString(){
-
-        return Arrays.toString(solve());
     }
 
     /***
@@ -274,7 +251,7 @@ class Maze {
      * 
      * @return ordered position list indicating path
      */
-    public int[] findPath(HashMap<Integer, Integer> pathPrev, int currentPos){
+    public String findPath(HashMap<Integer, Integer> pathPrev, int currentPos){
 
         List<Integer> path = new ArrayList<Integer>();
 
@@ -289,7 +266,7 @@ class Maze {
 
         Collections.reverse(path);
 
-        return path.stream().mapToInt(Integer::intValue).toArray();
+        return path.toString();
     }
 
     /***
@@ -462,24 +439,4 @@ class Maze {
 
         return !(!walls[wallsPos1] && !walls[wallsPos2]);
     }
-}
-
-class AStarPathComparator implements Comparator<AStarTuple>{
-
-    public int compare(AStarTuple a, AStarTuple b){
-
-        return a.cost - b.cost;
-    }
-}
-
-class AStarTuple {
-
-    int pos;
-    int cost;
-
-    public AStarTuple(int pos, int cost){
-        this.pos    = pos;
-        this.cost   = cost;
-    }
-    
 }

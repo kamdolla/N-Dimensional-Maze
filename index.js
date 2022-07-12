@@ -16,18 +16,14 @@ app.listen(
 app.get('/maze', (req, res) => {
     const { dimension } = req.body;
     const { size }      = req.body;
-
-    // let Maze    = java.import('Maze');
     
     let mazeObj = java.newInstanceSync("Maze", dimension, size);
 
-    let mazeDat = java.callMethodSync(mazeObj, "createString");
-    let mazeSol = java.callMethodSync(mazeObj, "solveString");
+    let mazeDat = java.callMethodSync(mazeObj, "create");
+    let mazeSol = java.callMethodSync(mazeObj, "solve");
 
     let numberOfNodes       = java.callMethodSync(mazeObj, "getNumNodes");
     let numberOfNodeWalls   = java.callMethodSync(mazeObj, "getNumNodeWalls");
-
-    console.log(mazeDat);
 
     res.status(200).send({
         dimension : dimension,
